@@ -498,9 +498,88 @@ const KinogutscheinManager = () => {
                   Gesehene Filme ({formData.einlösungen?.length || 0})
                 </h3>
                 
+                {/* Add New Movie Form */}
+                <div className="bg-blue-50 rounded-lg p-4 mb-4">
+                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    Neuen Film hinzufügen
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-medium mb-1">Filmtitel *</label>
+                      <input
+                        type="text"
+                        placeholder="z.B. Wicked"
+                        className="w-full p-2 text-sm border rounded focus:ring-2 focus:ring-blue-500"
+                        id="newFilm"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1">Anzahl Personen *</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={newMovieAttendees}
+                        onChange={(e) => setNewMovieAttendees(parseInt(e.target.value) || 1)}
+                        className="w-full p-2 text-sm border rounded focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1">Datum *</label>
+                      <input
+                        type="date"
+                        className="w-full p-2 text-sm border rounded focus:ring-2 focus:ring-blue-500"
+                        id="newDatum"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1">Uhrzeit *</label>
+                      <input
+                        type="time"
+                        className="w-full p-2 text-sm border rounded focus:ring-2 focus:ring-blue-500"
+                        id="newUhrzeit"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                    <div>
+                      <label className="block text-xs font-medium mb-1">Kino (optional)</label>
+                      <LocationManager
+                        selectedLocation={newMovieLocation}
+                        onLocationSelect={setNewMovieLocation}
+                        placeholder="Kino auswählen..."
+                        allowCustom={true}
+                        required={false}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1">Gutschein ID (optional)</label>
+                      <input
+                        type="text"
+                        value={newMovieGutscheinId}
+                        onChange={(e) => setNewMovieGutscheinId(e.target.value)}
+                        placeholder="z.B. CS-001, UCI-123"
+                        className="w-full p-2 text-sm border rounded focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={addNewEinlösung}
+                    className="mt-3 bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Film hinzufügen
+                  </button>
+                </div>
+
                 {/* Existing Movies List */}
                 {formData.einlösungen && formData.einlösungen.length > 0 && (
-                  <div className="bg-gray-300 rounded-lg p-4 overflow-y-auto mb-4">
+                  <div className="bg-gray-50 rounded-lg p-4 overflow-y-auto mb-4">
                     <div className="space-y-3">
                       {formData.einlösungen.map((einlösung, index) => (
                         <div key={index} className="bg-white rounded-lg p-3 shadow-sm border">
@@ -616,7 +695,7 @@ const KinogutscheinManager = () => {
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-sm text-gray-600 space-y-1">
+                                <div className="text-sm text-gray-600">
                                   <div className="flex items-center gap-4">
                                     <span className="flex items-center gap-1">
                                       <Calendar className="w-3 h-3" />
@@ -631,12 +710,12 @@ const KinogutscheinManager = () => {
                                       <Clock className="w-3 h-3" />
                                       {einlösung.uhrzeit}
                                     </span>
+                                    {einlösung.kino && (
+                                      <span className="flex items-center gap-1 text-xs text-gray-500">
+                                        📍 {einlösung.kino}
+                                      </span>
+                                    )}
                                   </div>
-                                  {einlösung.kino && (
-                                    <div className="text-xs text-gray-500">
-                                      📍 {einlösung.kino}
-                                    </div>
-                                  )}
                                 </div>
                               </div>
                               <div className="flex items-center gap-2">
@@ -665,84 +744,86 @@ const KinogutscheinManager = () => {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
 
-                {/* Add New Movie Form */}
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    Neuen Film hinzufügen
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                    <div className="md:col-span-2">
-                      <label className="block text-xs font-medium mb-1">Filmtitel *</label>
-                      <input
-                        type="text"
-                        placeholder="z.B. Wicked"
-                        className="w-full p-2 text-sm border rounded focus:ring-2 focus:ring-blue-500"
-                        id="newFilm"
-                        required
-                      />
+            {/* Timeline Visualization */}
+            {formData.id && formData.einlösungen && formData.einlösungen.length > 0 && (
+              <div className="md:col-span-2">
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Calendar className="w-5 h-5" />
+                  Jahres-Timeline
+                </h3>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  {/* Timeline Container */}
+                  <div className="relative">
+                    {/* Month Labels */}
+                    <div className="flex justify-between text-xs text-gray-500 mb-2">
+                      {['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'].map((month, index) => (
+                        <span key={month} className="flex-1 text-center">{month}</span>
+                      ))}
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium mb-1">Anzahl Personen *</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="20"
-                        value={newMovieAttendees}
-                        onChange={(e) => setNewMovieAttendees(parseInt(e.target.value) || 1)}
-                        className="w-full p-2 text-sm border rounded focus:ring-2 focus:ring-blue-500"
-                        required
-                      />
+                    
+                    {/* Timeline Bar */}
+                    <div className="relative h-8 bg-gray-200 rounded-full mb-4">
+                      {/* Month Dividers */}
+                      {Array.from({ length: 11 }, (_, i) => (
+                        <div
+                          key={i}
+                          className="absolute top-0 bottom-0 w-px bg-gray-300"
+                          style={{ left: `${((i + 1) / 12) * 100}%` }}
+                        />
+                      ))}
+                      
+                      {/* Movie Dots */}
+                      {formData.einlösungen.map((einlösung, index) => {
+                        const date = new Date(einlösung.datum);
+                        const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+                        const totalDaysInYear = new Date(date.getFullYear(), 11, 31).getDate() === 31 ? 365 : 366;
+                        const position = (dayOfYear / totalDaysInYear) * 100;
+                        
+                        return (
+                          <div
+                            key={index}
+                            className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 group cursor-pointer"
+                            style={{ left: `${position}%` }}
+                          >
+                            {/* Movie Dot */}
+                            <div className="w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-lg hover:scale-125 transition-transform">
+                              {einlösung.anzahlPersonen > 1 && (
+                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full text-xs text-white flex items-center justify-center font-bold">
+                                  {einlösung.anzahlPersonen}
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Tooltip */}
+                            <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                              <div className="font-medium">{einlösung.film}</div>
+                              <div>{new Date(einlösung.datum).toLocaleDateString('de-DE')}</div>
+                              {einlösung.kino && <div>📍 {einlösung.kino}</div>}
+                              <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium mb-1">Datum *</label>
-                      <input
-                        type="date"
-                        className="w-full p-2 text-sm border rounded focus:ring-2 focus:ring-blue-500"
-                        id="newDatum"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium mb-1">Uhrzeit *</label>
-                      <input
-                        type="time"
-                        className="w-full p-2 text-sm border rounded focus:ring-2 focus:ring-blue-500"
-                        id="newUhrzeit"
-                        required
-                      />
+                    
+                    {/* Legend */}
+                    <div className="flex items-center justify-center gap-4 text-xs text-gray-600">
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                        <span>Einzelperson</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="relative">
+                          <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                          <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-orange-500 rounded-full text-xs"></div>
+                        </div>
+                        <span>Mehrere Personen</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                    <div>
-                      <label className="block text-xs font-medium mb-1">Kino (optional)</label>
-                      <LocationManager
-                        selectedLocation={newMovieLocation}
-                        onLocationSelect={setNewMovieLocation}
-                        placeholder="Kino auswählen..."
-                        allowCustom={true}
-                        required={false}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium mb-1">Gutschein ID (optional)</label>
-                      <input
-                        type="text"
-                        value={newMovieGutscheinId}
-                        onChange={(e) => setNewMovieGutscheinId(e.target.value)}
-                        placeholder="z.B. CS-001, UCI-123"
-                        className="w-full p-2 text-sm border rounded focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-                  <button
-                    onClick={addNewEinlösung}
-                    className="mt-3 bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors flex items-center gap-1"
-                  >
-                    <Plus className="w-3 h-3" />
-                    Film hinzufügen
-                  </button>
                 </div>
               </div>
             )}
