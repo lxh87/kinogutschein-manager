@@ -206,6 +206,7 @@ const KinogutscheinManager = () => {
   const [editMovieLocations, setEditMovieLocations] = useState<{[key: number]: string}>({});
   const [editMovieAttendees, setEditMovieAttendees] = useState<{[key: number]: number}>({});
   const [editMovieGutscheinIds, setEditMovieGutscheinIds] = useState<{[key: number]: string}>({});
+  const [timelineYear, setTimelineYear] = useState(new Date().getFullYear());
 
   const saveMovieEdit = (index: number) => {
     const filmInput = document.getElementById(`editFilm-${index}`) as HTMLInputElement;
@@ -748,85 +749,150 @@ const KinogutscheinManager = () => {
             )}
 
             {/* Timeline Visualization */}
-            {formData.id && formData.einlösungen && formData.einlösungen.length > 0 && (
-              <div className="md:col-span-2">
-                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  Jahres-Timeline
-                </h3>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  {/* Timeline Container */}
-                  <div className="relative">
-                    {/* Month Labels */}
-                    <div className="flex justify-between text-xs text-gray-500 mb-2">
-                      {['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'].map((month, index) => (
-                        <span key={month} className="flex-1 text-center">{month}</span>
-                      ))}
-                    </div>
+            {formData.id && formData.einlösungen && formData.einlösungen.length > 0 && (() => {
+              // Get all unique years from movie dates
+              const allYears = Array.from(new Set(formData.einlösungen.map(e => new Date(e.datum).getFullYear()))).sort();
+              const minYear = Math.min(...allYears);
+              const maxYear = Math.max(...allYears);
+              
+              // Filter movies for current timeline year
+              const moviesInYear = formData.einlösungen.filter(e => new Date(e.datum).getFullYear() === timelineYear);
+              
+              return (
+                <div className="md:col-span-2">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <Calendar className="w-5 h-5" />
+                      Jahres-Timeline
+                    </h3>
                     
-                    {/* Timeline Bar */}
-                    <div className="relative h-8 bg-gray-200 rounded-full mb-4">
-                      {/* Month Dividers */}
-                      {Array.from({ length: 11 }, (_, i) => (
-                        <div
-                          key={i}
-                          className="absolute top-0 bottom-0 w-px bg-gray-300"
-                          style={{ left: `${((i + 1) / 12) * 100}%` }}
-                        />
-                      ))}
+                    {/* Year Navigation */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setTimelineYear(prev => Math.max(minYear, prev - 1))}
+                        disabled={timelineYear <= minYear}
+                        className="p-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Vorheriges Jahr"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
                       
-                      {/* Movie Dots */}
-                      {formData.einlösungen.map((einlösung, index) => {
-                        const date = new Date(einlösung.datum);
-                        const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
-                        const totalDaysInYear = new Date(date.getFullYear(), 11, 31).getDate() === 31 ? 365 : 366;
-                        const position = (dayOfYear / totalDaysInYear) * 100;
-                        
-                        return (
-                          <div
-                            key={index}
-                            className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 group cursor-pointer"
-                            style={{ left: `${position}%` }}
-                          >
-                            {/* Movie Dot */}
-                            <div className="w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-lg hover:scale-125 transition-transform">
-                              {einlösung.anzahlPersonen > 1 && (
-                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full text-xs text-white flex items-center justify-center font-bold">
-                                  {einlösung.anzahlPersonen}
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* Tooltip */}
-                            <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                              <div className="font-medium">{einlösung.film}</div>
-                              <div>{new Date(einlösung.datum).toLocaleDateString('de-DE')}</div>
-                              {einlösung.kino && <div>📍 {einlösung.kino}</div>}
-                              <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    
-                    {/* Legend */}
-                    <div className="flex items-center justify-center gap-4 text-xs text-gray-600">
-                      <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
-                        <span>Einzelperson</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <div className="relative">
-                          <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
-                          <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-orange-500 rounded-full text-xs"></div>
-                        </div>
-                        <span>Mehrere Personen</span>
-                      </div>
+                      <span className="font-medium text-lg min-w-[4rem] text-center">
+                        {timelineYear}
+                      </span>
+                      
+                      <button
+                        onClick={() => setTimelineYear(prev => Math.min(maxYear, prev + 1))}
+                        disabled={timelineYear >= maxYear}
+                        className="p-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Nächstes Jahr"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
+                  
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    {moviesInYear.length > 0 ? (
+                      <div className="relative">
+                        {/* Month Labels */}
+                        <div className="flex justify-between text-xs text-gray-500 mb-2">
+                          {['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'].map((month, index) => (
+                            <span key={month} className="flex-1 text-center">{month}</span>
+                          ))}
+                        </div>
+                        
+                        {/* Timeline Bar */}
+                        <div className="relative h-8 bg-gray-200 rounded-full mb-4">
+                          {/* Month Dividers */}
+                          {Array.from({ length: 11 }, (_, i) => (
+                            <div
+                              key={i}
+                              className="absolute top-0 bottom-0 w-px bg-gray-300"
+                              style={{ left: `${((i + 1) / 12) * 100}%` }}
+                            />
+                          ))}
+                          
+                          {/* Movie Dots */}
+                          {moviesInYear.map((einlösung, index) => {
+                            const date = new Date(einlösung.datum);
+                            const startOfYear = new Date(timelineYear, 0, 1);
+                            const endOfYear = new Date(timelineYear, 11, 31);
+                            const dayOfYear = Math.floor((date.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                            const totalDaysInYear = Math.floor((endOfYear.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                            const position = (dayOfYear / totalDaysInYear) * 100;
+                            
+                            return (
+                              <div
+                                key={`${einlösung.datum}-${index}`}
+                                className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 group cursor-pointer"
+                                style={{ left: `${Math.max(2, Math.min(98, position))}%` }}
+                              >
+                                {/* Movie Dot */}
+                                <div className="w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-lg hover:scale-125 transition-transform">
+                                  {einlösung.anzahlPersonen > 1 && (
+                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full text-xs text-white flex items-center justify-center font-bold">
+                                      {einlösung.anzahlPersonen}
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {/* Tooltip */}
+                                <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                                  <div className="font-medium">{einlösung.film}</div>
+                                  <div>{new Date(einlösung.datum).toLocaleDateString('de-DE')}</div>
+                                  {einlösung.kino && <div>📍 {einlösung.kino}</div>}
+                                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        
+                        {/* Year Summary */}
+                        <div className="text-center text-sm text-gray-600 mb-3">
+                          {moviesInYear.length} {moviesInYear.length === 1 ? 'Film' : 'Filme'} in {timelineYear}
+                          {allYears.length > 1 && (
+                            <span className="ml-2 text-xs">
+                              ({allYears.length} {allYears.length === 1 ? 'Jahr' : 'Jahre'} gesamt: {minYear}-{maxYear})
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* Legend */}
+                        <div className="flex items-center justify-center gap-4 text-xs text-gray-600">
+                          <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                            <span>Einzelperson</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="relative">
+                              <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                              <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-orange-500 rounded-full text-xs"></div>
+                            </div>
+                            <span>Mehrere Personen</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center text-gray-500 py-8">
+                        <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p>Keine Filme in {timelineYear}</p>
+                        {allYears.length > 0 && (
+                          <p className="text-xs mt-1">
+                            Verfügbare Jahre: {allYears.join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             <div className="md:col-span-2 flex gap-2">
               <button
