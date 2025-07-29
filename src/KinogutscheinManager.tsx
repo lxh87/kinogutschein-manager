@@ -207,6 +207,7 @@ const KinogutscheinManager = () => {
   const [editMovieAttendees, setEditMovieAttendees] = useState<{[key: number]: number}>({});
   const [editMovieGutscheinIds, setEditMovieGutscheinIds] = useState<{[key: number]: string}>({});
   const [timelineYear, setTimelineYear] = useState(new Date().getFullYear());
+  const [globalTimelineYear, setGlobalTimelineYear] = useState(new Date().getFullYear());
 
   const saveMovieEdit = (index: number) => {
     const filmInput = document.getElementById(`editFilm-${index}`) as HTMLInputElement;
@@ -564,9 +565,14 @@ const KinogutscheinManager = () => {
                         type="text"
                         value={newMovieGutscheinId}
                         onChange={(e) => setNewMovieGutscheinId(e.target.value)}
-                        placeholder="z.B. CS-001, UCI-123"
+                        placeholder="z.B. CS-001 oder CS-001, CS-002, CS-003"
                         className="w-full p-2 text-sm border rounded focus:ring-2 focus:ring-blue-500"
                       />
+                      {newMovieAttendees > 1 && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          💡 Tipp: Für {newMovieAttendees} Personen können Sie mehrere IDs durch Kommas getrennt eingeben
+                        </div>
+                      )}
                     </div>
                   </div>
                   <button
@@ -642,7 +648,7 @@ const KinogutscheinManager = () => {
                                         [index]: e.target.value
                                       }));
                                     }}
-                                    placeholder="z.B. CS-001"
+                                    placeholder="z.B. CS-001 oder CS-001, CS-002"
                                     className="w-full p-2 text-sm border rounded focus:ring-2 focus:ring-blue-500"
                                   />
                                 </div>
@@ -693,6 +699,11 @@ const KinogutscheinManager = () => {
                                   {einlösung.gutscheinId && (
                                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                       ID: {einlösung.gutscheinId}
+                                      {einlösung.anzahlPersonen > 1 && einlösung.gutscheinId.includes(',') && (
+                                        <span className="ml-1 text-xs opacity-75">
+                                          ({einlösung.gutscheinId.split(',').length} IDs)
+                                        </span>
+                                      )}
                                     </span>
                                   )}
                                 </div>
@@ -842,11 +853,11 @@ const KinogutscheinManager = () => {
                                 </div>
                                 
                                 {/* Tooltip */}
-                                <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                                <div className="absolute top-1/2 left-6 transform -translate-y-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
                                   <div className="font-medium">{einlösung.film}</div>
                                   <div>{new Date(einlösung.datum).toLocaleDateString('de-DE')}</div>
                                   {einlösung.kino && <div>📍 {einlösung.kino}</div>}
-                                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                                  <div className="absolute top-1/2 right-full transform -translate-y-1/2 border-4 border-transparent border-r-gray-800"></div>
                                 </div>
                               </div>
                             );
@@ -1004,6 +1015,205 @@ const KinogutscheinManager = () => {
           </table>
         </div>
       </div>
+
+      {/* Global Timeline - All Gutscheine */}
+      {(() => {
+        // Collect all movies from all gutscheine
+        const allMovies = gutscheine.flatMap(gutschein => 
+          gutschein.einlösungen?.map(einlösung => ({
+            ...einlösung,
+            gutscheinName: gutschein.name,
+            gutscheinId: gutschein.id
+          })) || []
+        );
+
+        if (allMovies.length === 0) return null;
+
+        // Get all unique years from all movies
+        const allYears = Array.from(new Set(allMovies.map(movie => new Date(movie.datum).getFullYear()))).sort();
+        
+        // Update global timeline year if it's not in the available years
+        if (allYears.length > 0 && !allYears.includes(globalTimelineYear)) {
+          setGlobalTimelineYear(Math.max(...allYears));
+        }
+        
+        // Filter movies for current timeline year
+        const moviesInYear = allMovies.filter(movie => new Date(movie.datum).getFullYear() === globalTimelineYear);
+        
+        // Group movies by date and film for same-day same-movie viewings
+        const groupedMovies = moviesInYear.reduce((groups, movie) => {
+          const key = `${movie.datum}-${movie.film}`;
+          if (!groups[key]) {
+            groups[key] = {
+              datum: movie.datum,
+              film: movie.film,
+              kino: movie.kino,
+              totalPersonen: 0,
+              gutscheine: [],
+              ids: []
+            };
+          }
+          groups[key].totalPersonen += movie.anzahlPersonen;
+          groups[key].gutscheine.push(movie.gutscheinName);
+          if (movie.gutscheinId) {
+            groups[key].ids.push(movie.gutscheinId);
+          }
+          return groups;
+        }, {} as Record<string, any>);
+
+        const groupedMoviesList = Object.values(groupedMovies);
+
+        return (
+          <div className="mt-8 bg-white rounded-lg shadow-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Calendar className="w-6 h-6" />
+                Alle Filme - Jahres-Timeline
+                <span className="text-sm font-normal text-gray-500">
+                  ({allMovies.length} {allMovies.length === 1 ? 'Film' : 'Filme'} gesamt)
+                </span>
+              </h2>
+              
+              {/* Global Year Navigation */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setGlobalTimelineYear(prev => Math.max(Math.min(...allYears), prev - 1))}
+                  disabled={globalTimelineYear <= Math.min(...allYears)}
+                  className="p-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Vorheriges Jahr"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                
+                <span className="font-medium text-lg min-w-[4rem] text-center">
+                  {globalTimelineYear}
+                </span>
+                
+                <button
+                  onClick={() => setGlobalTimelineYear(prev => Math.min(Math.max(...allYears), prev + 1))}
+                  disabled={globalTimelineYear >= Math.max(...allYears)}
+                  className="p-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Nächstes Jahr"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-4">
+              {groupedMoviesList.length > 0 ? (
+                <div className="relative">
+                  {/* Month Labels */}
+                  <div className="flex justify-between text-xs text-gray-500 mb-2">
+                    {['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'].map((month, index) => (
+                      <span key={month} className="flex-1 text-center">{month}</span>
+                    ))}
+                  </div>
+                  
+                  {/* Timeline Bar */}
+                  <div className="relative h-10 bg-gray-200 rounded-full mb-4">
+                    {/* Month Dividers */}
+                    {Array.from({ length: 11 }, (_, i) => (
+                      <div
+                        key={i}
+                        className="absolute top-0 bottom-0 w-px bg-gray-300"
+                        style={{ left: `${((i + 1) / 12) * 100}%` }}
+                      />
+                    ))}
+                    
+                    {/* Movie Dots */}
+                    {groupedMoviesList.map((movieGroup, index) => {
+                      const date = new Date(movieGroup.datum);
+                      const startOfYear = new Date(globalTimelineYear, 0, 1);
+                      const endOfYear = new Date(globalTimelineYear, 11, 31);
+                      const dayOfYear = Math.floor((date.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                      const totalDaysInYear = Math.floor((endOfYear.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                      const position = (dayOfYear / totalDaysInYear) * 100;
+                      
+                      return (
+                        <div
+                          key={`${movieGroup.datum}-${movieGroup.film}-${index}`}
+                          className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 group cursor-pointer"
+                          style={{ left: `${Math.max(2, Math.min(98, position))}%` }}
+                        >
+                          {/* Movie Dot */}
+                          <div className="w-5 h-5 bg-purple-600 rounded-full border-2 border-white shadow-lg hover:scale-125 transition-transform">
+                            {movieGroup.totalPersonen > 1 && (
+                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 rounded-full text-xs text-white flex items-center justify-center font-bold">
+                                {movieGroup.totalPersonen}
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Tooltip */}
+                          <div className="absolute top-1/2 left-7 transform -translate-y-1/2 bg-gray-800 text-white text-xs rounded px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                            <div className="font-medium">{movieGroup.film}</div>
+                            <div>{new Date(movieGroup.datum).toLocaleDateString('de-DE')}</div>
+                            {movieGroup.kino && <div>📍 {movieGroup.kino}</div>}
+                            <div className="text-xs opacity-75 mt-1">
+                              {movieGroup.totalPersonen} {movieGroup.totalPersonen === 1 ? 'Person' : 'Personen'}
+                            </div>
+                            {movieGroup.gutscheine.length > 0 && (
+                              <div className="text-xs opacity-75">
+                                Gutscheine: {Array.from(new Set(movieGroup.gutscheine)).join(', ')}
+                              </div>
+                            )}
+                            {movieGroup.ids.length > 0 && (
+                              <div className="text-xs opacity-75">
+                                IDs: {movieGroup.ids.join(', ')}
+                              </div>
+                            )}
+                            <div className="absolute top-1/2 right-full transform -translate-y-1/2 border-4 border-transparent border-r-gray-800"></div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* Year Summary */}
+                  <div className="text-center text-sm text-gray-600 mb-3">
+                    {groupedMoviesList.length} {groupedMoviesList.length === 1 ? 'Film' : 'Filme'} in {globalTimelineYear}
+                    {allYears.length > 1 && (
+                      <span className="ml-2 text-xs">
+                        ({allYears.length} {allYears.length === 1 ? 'Jahr' : 'Jahre'} gesamt: {Math.min(...allYears)}-{Math.max(...allYears)})
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Legend */}
+                  <div className="flex items-center justify-center gap-4 text-xs text-gray-600">
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+                      <span>Film (alle Gutscheine)</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="relative">
+                        <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+                        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-orange-500 rounded-full text-xs"></div>
+                      </div>
+                      <span>Mehrere Personen</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>Keine Filme in {globalTimelineYear}</p>
+                  {allYears.length > 0 && (
+                    <p className="text-xs mt-1">
+                      Verfügbare Jahre: {allYears.join(', ')}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
