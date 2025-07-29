@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Euro, Film, Plus, Trash2, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
 import LocationManager from './LocationManager';
 
@@ -312,6 +312,27 @@ const KinogutscheinManager = () => {
   const formatDatum = (datum?: string) => {
     if (!datum) return '-';
     return new Date(datum).toLocaleDateString('de-DE');
+  };
+
+  const getExpirationColor = (ablaufdatum: string) => {
+    const today = new Date();
+    const expirationDate = new Date(ablaufdatum);
+    const diffTime = expirationDate.getTime() - today.getTime();
+    const diffMonths = diffTime / (1000 * 60 * 60 * 24 * 30.44); // Average days per month
+
+    if (diffMonths < 0) {
+      // Already expired
+      return 'bg-red-100 text-red-800 border border-red-200';
+    } else if (diffMonths < 2) {
+      // Less than 2 months - Red
+      return 'bg-red-100 text-red-700 border border-red-200';
+    } else if (diffMonths < 6) {
+      // Less than 6 months - Yellow/Orange
+      return 'bg-orange-100 text-orange-700 border border-orange-200';
+    } else {
+      // More than 6 months - Green
+      return 'bg-green-100 text-green-700 border border-green-200';
+    }
   };
 
   const gültigeGutscheine = gutscheine.filter(g => (g.status === 'gültig' || g.status === 'teilweise eingelöst') && new Date(g.ablaufdatum) >= new Date());
@@ -838,28 +859,29 @@ const KinogutscheinManager = () => {
                             const position = (dayOfYear / totalDaysInYear) * 100;
                             
                             return (
-                              <div
-                                key={`${einlösung.datum}-${index}`}
-                                className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 group cursor-pointer"
-                                style={{ left: `${Math.max(2, Math.min(98, position))}%` }}
-                              >
-                                {/* Movie Dot */}
-                                <div className="w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-lg hover:scale-125 transition-transform">
-                                  {einlösung.anzahlPersonen > 1 && (
-                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full text-xs text-white flex items-center justify-center font-bold">
-                                      {einlösung.anzahlPersonen}
-                                    </div>
-                                  )}
+                              <React.Fragment key={`${einlösung.datum}-${index}`}>
+                                <div
+                                  className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 group cursor-pointer"
+                                  style={{ left: `${Math.max(2, Math.min(98, position))}%` }}
+                                >
+                                  {/* Movie Dot */}
+                                  <div className="relative w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-lg hover:scale-125 transition-transform">
+                                    {einlösung.anzahlPersonen > 1 && (
+                                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full text-xs text-white flex items-center justify-center font-bold">
+                                        {einlösung.anzahlPersonen}
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Tooltip */}
+                                  <div className="absolute top-1/2 left-6 transform -translate-y-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                                    <div className="font-medium">{einlösung.film}</div>
+                                    <div>{new Date(einlösung.datum).toLocaleDateString('de-DE')}</div>
+                                    {einlösung.kino && <div>📍 {einlösung.kino}</div>}
+                                    <div className="absolute top-1/2 right-full transform -translate-y-1/2 border-4 border-transparent border-r-gray-800"></div>
+                                  </div>
                                 </div>
-                                
-                                {/* Tooltip */}
-                                <div className="absolute top-1/2 left-6 transform -translate-y-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                                  <div className="font-medium">{einlösung.film}</div>
-                                  <div>{new Date(einlösung.datum).toLocaleDateString('de-DE')}</div>
-                                  {einlösung.kino && <div>📍 {einlösung.kino}</div>}
-                                  <div className="absolute top-1/2 right-full transform -translate-y-1/2 border-4 border-transparent border-r-gray-800"></div>
-                                </div>
-                              </div>
+                              </React.Fragment>
                             );
                           })}
                         </div>
@@ -952,7 +974,11 @@ const KinogutscheinManager = () => {
                   </td>
                   <td className="px-4 py-3">
                     <div>
-                      <div className="font-medium">
+                      <div 
+                        className="font-medium text-blue-600 hover:text-blue-800 cursor-pointer hover:underline"
+                        onClick={() => bearbeiten(gutschein)}
+                        title="Details anzeigen"
+                      >
                         {gutschein.name}
                       </div>
                       {gutschein.konditionen && (
@@ -982,7 +1008,11 @@ const KinogutscheinManager = () => {
                     </div>
                   </td>
                   <td className="px-4 py-3">{gutschein.kaufpreis.toFixed(2)}€</td>
-                  <td className="px-4 py-3">{formatDatum(gutschein.ablaufdatum)}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getExpirationColor(gutschein.ablaufdatum)}`}>
+                      {formatDatum(gutschein.ablaufdatum)}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-xs">{gutschein.bestellnummer || '-'}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
@@ -1135,41 +1165,42 @@ const KinogutscheinManager = () => {
                       const position = (dayOfYear / totalDaysInYear) * 100;
                       
                       return (
-                        <div
-                          key={`${movieGroup.datum}-${movieGroup.film}-${index}`}
-                          className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 group cursor-pointer"
-                          style={{ left: `${Math.max(2, Math.min(98, position))}%` }}
-                        >
-                          {/* Movie Dot */}
-                          <div className="w-5 h-5 bg-purple-600 rounded-full border-2 border-white shadow-lg hover:scale-125 transition-transform">
-                            {movieGroup.totalPersonen > 1 && (
-                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 rounded-full text-xs text-white flex items-center justify-center font-bold">
-                                {movieGroup.totalPersonen}
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Tooltip */}
-                          <div className="absolute top-1/2 left-7 transform -translate-y-1/2 bg-gray-800 text-white text-xs rounded px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                            <div className="font-medium">{movieGroup.film}</div>
-                            <div>{new Date(movieGroup.datum).toLocaleDateString('de-DE')}</div>
-                            {movieGroup.kino && <div>📍 {movieGroup.kino}</div>}
-                            <div className="text-xs opacity-75 mt-1">
-                              {movieGroup.totalPersonen} {movieGroup.totalPersonen === 1 ? 'Person' : 'Personen'}
+                        <React.Fragment key={`${movieGroup.datum}-${movieGroup.film}-${index}`}>
+                          <div
+                            className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 group cursor-pointer"
+                            style={{ left: `${Math.max(2, Math.min(98, position))}%` }}
+                          >
+                            {/* Movie Dot */}
+                            <div className="relative w-5 h-5 bg-purple-600 rounded-full border-2 border-white shadow-lg hover:scale-125 transition-transform">
+                              {movieGroup.totalPersonen > 1 && (
+                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 rounded-full text-xs text-white flex items-center justify-center font-bold">
+                                  {movieGroup.totalPersonen}
+                                </div>
+                              )}
                             </div>
-                            {movieGroup.gutscheine.length > 0 && (
-                              <div className="text-xs opacity-75">
-                                Gutscheine: {Array.from(new Set(movieGroup.gutscheine)).join(', ')}
+                            
+                            {/* Tooltip */}
+                            <div className="absolute top-1/2 left-7 transform -translate-y-1/2 bg-gray-800 text-white text-xs rounded px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                              <div className="font-medium">{movieGroup.film}</div>
+                              <div>{new Date(movieGroup.datum).toLocaleDateString('de-DE')}</div>
+                              {movieGroup.kino && <div>📍 {movieGroup.kino}</div>}
+                              <div className="text-xs opacity-75 mt-1">
+                                {movieGroup.totalPersonen} {movieGroup.totalPersonen === 1 ? 'Person' : 'Personen'}
                               </div>
-                            )}
-                            {movieGroup.ids.length > 0 && (
-                              <div className="text-xs opacity-75">
-                                IDs: {movieGroup.ids.join(', ')}
-                              </div>
-                            )}
-                            <div className="absolute top-1/2 right-full transform -translate-y-1/2 border-4 border-transparent border-r-gray-800"></div>
+                              {movieGroup.gutscheine.length > 0 && (
+                                <div className="text-xs opacity-75">
+                                  Gutscheine: {Array.from(new Set(movieGroup.gutscheine)).join(', ')}
+                                </div>
+                              )}
+                              {movieGroup.ids.length > 0 && (
+                                <div className="text-xs opacity-75">
+                                  IDs: {movieGroup.ids.join(', ')}
+                                </div>
+                              )}
+                              <div className="absolute top-1/2 right-full transform -translate-y-1/2 border-4 border-transparent border-r-gray-800"></div>
+                            </div>
                           </div>
-                        </div>
+                        </React.Fragment>
                       );
                     })}
                   </div>
