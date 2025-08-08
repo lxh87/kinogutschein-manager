@@ -1,0 +1,77 @@
+[
+  {
+    "id": 1,
+    "name": "CineStar 10er Gutschein",
+    "kaufpreis": 80,
+    "ablaufdatum": "2025-12-31",
+    "status": "teilweise eingelöst",
+    "bestellnummer": "1006729134",
+    "konditionen": "Bis zu 10 Kinogutscheine für 1 Person für 2D-Filme inkl. Sitzplatz & Filmzuschlag bei CineStar. Gültig ab 01.01.2025 bis 31.12.2025.",
+    "anzahlNutzungen": 6,
+    "maxNutzungen": 10,
+    "mehrerePersonen": false,
+    "einlösungen": [
+      {
+        "datum": "2024-12-08",
+        "film": "Wicked",
+        "uhrzeit": "19:45",
+        "kino": "CineStar",
+        "anzahlPersonen": 1,
+        "gutscheinId": "CS-001"
+      },
+      {
+        "datum": "2025-02-16",
+        "film": "Captain America: Brave New World",
+        "uhrzeit": "19:45",
+        "kino": "CineStar",
+        "anzahlPersonen": 1,
+        "gutscheinId": "CS-002"
+      },
+      {
+        "datum": "2025-03-14",
+        "film": "Mickey 17",
+        "uhrzeit": "22:45",
+        "kino": "CineStar",
+        "anzahlPersonen": 1,
+        "gutscheinId": "CS-003"
+      },
+      {
+        "datum": "2025-04-30",
+        "film": "Thunderbolts*",
+        "uhrzeit": "22:20",
+        "kino": "CineStar",
+        "anzahlPersonen": 1,
+        "gutscheinId": "CS-004"
+      },
+      {
+        "datum": "2025-06-22",
+        "film": "28 Years Later",
+        "uhrzeit": "20:00",
+        "kino": "CineStar",
+        "anzahlPersonen": 1,
+        "gutscheinId": "CS-005"
+      },
+      {
+        "datum": "2025-07-22",
+        "film": "Superman",
+        "uhrzeit": "20:10",
+        "kino": "CineStar",
+        "anzahlPersonen": 1,
+        "gutscheinId": "CS-006"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "10 Tickets für 63€ (Kino-Gutschein)",
+    "kaufpreis": 63,
+    "ablaufdatum": "2026-03-15",
+    "status": "gültig",
+    "bestellnummer": "",
+    "konditionen": "Gültig für alle 2D-Filme inkl. Zuschläge. 3D-Zuschlag: +3€ (ggf. +1€ für 3D-Brille). Keine Einlösung bei Sonderveranstaltungen, Vorpremieren oder IMAX. Nicht einlösbar im Filmpalast am ZKM (Karlsruhe).",
+    "anzahlNutzungen": 0,
+    "maxNutzungen": 10,
+    "mehrerePersonen": false,
+    "einlösungen": []
+  }
+]

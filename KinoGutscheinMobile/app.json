@@ -1,0 +1,7 @@
+{
+  "name": "KinoGutscheinMobile",
+  "slug": "KinoGutscheinMobile",
+  "plugins": [
+    "expo-sqlite"
+  ]
+}

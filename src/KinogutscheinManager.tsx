@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Euro, Film, Plus, Trash2, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
 import LocationManager from './LocationManager';
+// Pure web persistence (localStorage) + import/export
 
 // Define the types for the Gutschein and Einlösung
 interface Einlösung {
@@ -36,7 +37,10 @@ interface GutscheinForm extends Omit<Gutschein, 'id' | 'kaufpreis'> {
 }
 
 const KinogutscheinManager = () => {
+  const STORAGE_KEY = 'kinogutscheine_v1';
+  const FORM_STORAGE_KEY = 'kinogutscheine_form_v1';
   const [gutscheine, setGutscheine] = useState<Gutschein[]>([]);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingMovieIndex, setEditingMovieIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<GutscheinForm>({
@@ -56,45 +60,38 @@ const KinogutscheinManager = () => {
     mehrerePersonen: false
   });
 
-  // Beispieldaten beim ersten Laden
+  // Formular-Entwurf laden (falls vorhanden)
   useEffect(() => {
-    const beispielGutscheine: Gutschein[] = [
-      {
-        id: 1,
-        name: 'CineStar 10er Gutschein',
-        kaufpreis: 80.00, // Geschätzter Preis
-        ablaufdatum: '2025-12-31',
-        status: 'teilweise eingelöst',
-        bestellnummer: '1006729134',
-        konditionen: 'Bis zu 10 Kinogutscheine für 1 Person für 2D-Filme inkl. Sitzplatz & Filmzuschlag bei CineStar. Gültig ab 01.01.2025 bis 31.12.2025.',
-        anzahlNutzungen: 6, // 6 movies × 1 person each = 6 usages
-        maxNutzungen: 10,
-        mehrerePersonen: false,
-        einlösungen: [
-          { datum: '2024-12-08', film: 'Wicked', uhrzeit: '19:45', kino: 'CineStar', anzahlPersonen: 1, gutscheinId: 'CS-001' },
-          { datum: '2025-02-16', film: 'Captain America: Brave New World', uhrzeit: '19:45', kino: 'CineStar', anzahlPersonen: 1, gutscheinId: 'CS-002' },
-          { datum: '2025-03-14', film: 'Mickey 17', uhrzeit: '22:45', kino: 'CineStar', anzahlPersonen: 1, gutscheinId: 'CS-003' },
-          { datum: '2025-04-30', film: 'Thunderbolts*', uhrzeit: '22:20', kino: 'CineStar', anzahlPersonen: 1, gutscheinId: 'CS-004' },
-          { datum: '2025-06-22', film: '28 Years Later', uhrzeit: '20:00', kino: 'CineStar', anzahlPersonen: 1, gutscheinId: 'CS-005' },
-          { datum: '2025-07-22', film: 'Superman', uhrzeit: '20:10', kino: 'CineStar', anzahlPersonen: 1, gutscheinId: 'CS-006' }
-        ]
-      },
-      {
-        id: 2,
-        name: '10 Tickets für 63€ (Kino-Gutschein)',
-        kaufpreis: 63.00,
-        ablaufdatum: '2026-03-15',
-        status: 'gültig',
-        bestellnummer: '',
-        konditionen: 'Gültig für alle 2D-Filme inkl. Zuschläge. 3D-Zuschlag: +3€ (ggf. +1€ für 3D-Brille). Keine Einlösung bei Sonderveranstaltungen, Vorpremieren oder IMAX. Nicht einlösbar im Filmpalast am ZKM (Karlsruhe).',
-        anzahlNutzungen: 0, // No movies watched yet
-        maxNutzungen: 10,
-        mehrerePersonen: false,
-        einlösungen: []
+    try {
+      const draft = localStorage.getItem(FORM_STORAGE_KEY);
+      if (draft) {
+        const parsed = JSON.parse(draft) as GutscheinForm;
+        setFormData(parsed);
+        setShowForm(true);
       }
-    ];
-    setGutscheine(beispielGutscheine);
+    } catch {}
   }, []);
+
+  // Daten laden (localStorage)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) setGutscheine(JSON.parse(saved));
+    } catch {}
+    setIsHydrated(true);
+  }, []);
+
+  // Änderungen automatisch speichern (localStorage)
+  useEffect(() => {
+    if (!isHydrated) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(gutscheine));
+    } catch (err) {
+      console.warn('Konnte Daten nicht speichern:', err);
+    }
+  }, [gutscheine, isHydrated]);
+
+  // Keine Datei-Verknüpfung mehr – nur Import/Export + localStorage
 
   const handleSubmit = () => {
     
@@ -112,10 +109,13 @@ const KinogutscheinManager = () => {
       setGutscheine(prev => [...prev, neuerGutschein]);
     }
 
+    // Nach dem Speichern Entwurf löschen
+    try { localStorage.removeItem(FORM_STORAGE_KEY); } catch {}
     resetForm();
   };
 
   const resetForm = () => {
+    try { localStorage.removeItem(FORM_STORAGE_KEY); } catch {}
     setFormData({
       id: undefined,
       name: '',
@@ -208,6 +208,60 @@ const KinogutscheinManager = () => {
   const [editMovieGutscheinIds, setEditMovieGutscheinIds] = useState<{[key: number]: string}>({});
   const [timelineYear, setTimelineYear] = useState(new Date().getFullYear());
   const [globalTimelineYear, setGlobalTimelineYear] = useState(new Date().getFullYear());
+
+  // Formular-Entwurf automatisch speichern
+  useEffect(() => {
+    const hasContent = Boolean(
+      formData.id ||
+      formData.name ||
+      formData.kaufpreis !== '' ||
+      formData.ablaufdatum ||
+      (formData.einlösungen && formData.einlösungen.length > 0)
+    );
+    try {
+      if (showForm && hasContent) {
+        localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
+      } else {
+        localStorage.removeItem(FORM_STORAGE_KEY);
+      }
+    } catch {}
+  }, [formData, showForm]);
+
+  const exportData = () => {
+    try {
+      const json = JSON.stringify(gutscheine, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `kinogutscheine-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Export fehlgeschlagen.');
+    }
+  };
+
+  const importDataFromFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result));
+        if (Array.isArray(parsed)) {
+          setGutscheine(parsed as Gutschein[]);
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed)); } catch {}
+          alert('Daten importiert.');
+        } else {
+          alert('Ungültiges Datei-Format.');
+        }
+      } catch (e) {
+        alert('Import fehlgeschlagen.');
+      }
+    };
+    reader.readAsText(file);
+  };
 
   const saveMovieEdit = (index: number) => {
     const filmInput = document.getElementById(`editFilm-${index}`) as HTMLInputElement;
@@ -346,7 +400,26 @@ const KinogutscheinManager = () => {
           <Film className="text-blue-600" />
           Kinogutschein-Manager
         </h1>
-        
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <button
+            onClick={exportData}
+            className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded border hover:bg-gray-200 text-sm"
+          >
+            Daten exportieren
+          </button>
+          <label className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded border hover:bg-gray-200 text-sm cursor-pointer">
+            Daten importieren
+            <input
+              type="file"
+              accept="application/json"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) importDataFromFile(file);
+              }}
+            />
+          </label>
+        </div>
         {/* Statistiken */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-blue-50 p-4 rounded-lg">
